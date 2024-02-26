@@ -1,0 +1,141 @@
+---
+title: "Hotel Booking Prediction Model"
+output: 
+  html_notebook:
+    toc: yes
+    toc_float: yes
+author: Nimay Srinivasn
+---
+
+<!-- More information in R Markdown can be found at:
+1. https://www.ssc.wisc.edu/sscc/pubs/RFR/RFR_RMarkdown.html  This is 
+   the place to start since it is a short tutorial.
+2. https://rmarkdown.rstudio.com/index.html This contains a longer 
+   tutorial.  Take a look at the cheatsheet in 
+   https://rmarkdown.rstudio.com/lesson-15.html, it is a concise 
+   reference of R Markdown on two pages.
+<-->
+
+## Use this as a template for your homeworks.
+#### Rename it to firstname-lastname.Rmd.
+#### Run all the chunks by clicking on "Run" at the top right of the edit 
+#### window and choose "Run All".  Assuming there were no errors in the
+#### chunk, you should see a "Preview" button become visible on the top
+#### left of the edit window.  Click this button and a html document should
+#### pop up with the output from this R markdown script.
+
+### Part 2.1-A
+```{r}
+library(plyr)
+hotel = read.csv("/Users/sreevatsa/Downloads/hotel_bookings.csv", header = TRUE)
+count(hotel, 'hotel') 
+```
+### Part 2.1-B.
+```{r}
+count(hotel, 'is_canceled') 
+#Number of guests who canceled reservation: 44224
+#Number of guests who did not cancel the reservation: 75166
+```
+### Part 2.1-C.
+```{r}
+count(hotel, 'customer_type')
+# Customer type with the most reservations is Transient, with 89613 reservations
+```
+
+### Part 2.1-D.
+```{r}
+count(hotel, 'required_car_parking_spaces')
+#7383 customers required the least number of parking spaces (1).
+```
+
+### Part 2.1-E.
+```{r}
+count(hotel, 'required_car_parking_spaces')
+# 2 customers required the least number of parking spaces (8).
+```
+
+### Part 2.1-F.
+```{r}
+count(hotel, 'reserved_room_type')
+count(hotel, 'assigned_room_type')
+tt <- table(hotel$reserved_room_type == hotel$assigned_room_type)
+round(100*prop.table(tt),digits = 2)
+# 87.51% of the people who expressed a room preference during reservation got the room during check-in.
+```
+### Part 2.1-G.
+```{r}
+cancellation = (hotel['is_canceled'] == 'No') & (hotel['hotel'] == 'City Hotel')
+travel = hotel[cancellation, 'country']
+#travel.value_counts().head(10).plot(kind='barh',title='City Hotel')
+
+cancellation = (hotel['is_canceled'] == 'No') & (hotel['hotel'] == 'Resort Hotel')
+travel = hotel[cancellation, 'country']
+#travel.value_counts().head(10).plot(kind='barh',title='Resort Hotel')
+```
+### Part 2.1-H.
+```{r}
+
+```
+
+### Part 2.2.
+```{r}
+set.seed(1122)
+index <- sample(1:nrow(hotel), 0.90*dim(hotel) [1])
+train.df <- hotel[index,]
+test.df <- hotel[-index, ]
+dtree_train <- train.df[c('hotel','is_canceled','lead_time','adults','children','babies','meal','market_segment','distribution_channel',
+'is_repeated_guest', 'previous_cancellations','previous_bookings_not_canceled','reserved_room_type','deposit_type','days_in_waiting_list',
+'customer_type','adr','required_car_parking_spaces')]
+
+dtree_test <- test.df[c('hotel','is_canceled','lead_time','adults','children','babies','meal','market_segment','distribution_channel',
+'is_repeated_guest', 'previous_cancellations','previous_bookings_not_canceled','reserved_room_type','deposit_type','days_in_waiting_list',
+'customer_type','adr','required_car_parking_spaces')]
+```
+
+### Part 2.2-A.
+```{r}
+library(rpart)
+library(rpart.plot)
+library(caret)
+model <- rpart(is_canceled ~ ., method="class", data=dtree_train)
+pred <- predict(model, dtree_train, type="class")
+levels(pred)
+table(pred)
+confusionMatrix(pred,as.factor(dtree_train$is_canceled))
+### Part 2.2-A.-i
+rpart.plot(model, extra=104, fallen.leaves=T, type=4, main="tt")
+### Part 2.2-A.-ii
+# The list of important variables from the model and the output descion tree are 
+#Deposit type (No Deposit, Refundabale and Non Refund)
+#Lead time
+#Previous Cancellations
+### Part 2.2-A.-iii
+model <- rpart(is_canceled ~ ., method="class", data=dtree_test)
+pred <- predict(model, dtree_test, type="class")
+confusionMatrix(pred,as.factor(dtree_test$is_canceled))
+### Part 2.2-A.-iv
+library(ROCR)
+library("caret")
+pred.rocr <- predict(model, newdata=dtree_test, type="prob")[,2]
+f.pred <- prediction(pred.rocr, dtree_test$is_canceled)
+f.perf <- performance(f.pred, "tpr", "fpr")
+plot(f.perf, colorize=T, lwd=3)
+abline(0,1)
+auc <- performance(f.pred, measure = "auc")
+cat(paste("The area under curve (AUC) for this model is ", round(auc@y.values[[1]], 3)))
+```
+
+### Part 2.3-A
+```{r}
+library(rpart)
+library(rpart.plot)
+library(caret)
+model <- rpart(is_canceled ~ ., method="class", data=dtree_train, cp=0.0)
+pred <- predict(model, dtree_train, type="class")
+levels(pred)
+table(pred)
+confusionMatrix(pred,as.factor(dtree_train$is_canceled))
+```
+### Part 2.3-B
+```{r}
+```
